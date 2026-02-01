@@ -50,17 +50,22 @@
     // Выполняем переход (используем Lampa.Activity.push)
     Lampa.Activity.push(activity_data);
 
-    // Ждем загрузки результатов и отправляем их ИИ
+   // Ждем отрисовки компонентов
     setTimeout(function() {
         try {
             let active = Lampa.Activity.active();
-            let items = active.items || [];
+            let items = active.activity.component.items || [];
             
-            let res = items.slice(0, 5).map(i => ({
-                id: i.id,
-                title: i.name || i.title,
-                type: i.type || (i.number_of_seasons ? 'tv' : 'movie')
-            }));
+            let res = items.slice(0, 7).map(item => {
+                let d = item.data || {};
+                return {
+                    id: d.id,
+                    title: d.title || d.name,
+                    release_date: d.release_date || d.first_air_date || '????',
+                    type: d.original_title ? 'movie' : 'tv', // Простая проверка типа
+                    overview: d.overview ? d.overview.slice(0, 100) + '...' : ''
+                };
+            });
 
             socket.send(JSON.stringify({
                 status: 'success',
@@ -68,11 +73,13 @@
                 data: res
             }));
             
-            Lampa.Noty.show('Найдено для ИИ: ' + res.length);
+            console.log('AI-Control: Передано ИИ объектов: ' + res.length);
+
         } catch (e) {
-            console.error('AI-Control Error:', e);
+            console.error('AI-Control: Data extract error', e);
+            socket.send(JSON.stringify({status: 'error', message: 'Data structure mismatch'}));
         }
-    }, 2500);
+    }, 3000); 
 }
                 // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
