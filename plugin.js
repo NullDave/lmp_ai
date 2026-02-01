@@ -84,15 +84,17 @@
                 
                 // 2. ОТКРЫТИЕ КАРТОЧКИ (через Lampa.Activity.push)
                 if (data.method === 'open') {
-                    Lampa.Activity.push({
-                        url: '',
-                        component: 'full',
-                        card: { 
-                            id: data.id, 
-                            method: data.type || 'movie' 
-                        },
-                        source: 'tmdb'
-                    });
+                        Lampa.Activity.push({
+                            url: '', 
+                            component: 'full',
+                            id: data.id,           // Обязательно в корне
+                            method: data.type || 'movie', // movie или tv
+                            card: { 
+                                id: data.id, 
+                                method: data.type || 'movie' 
+                            },
+                            source: 'tmdb'
+                        });
                     socket.send(JSON.stringify({status: 'success', method: 'open'}));
                 }
 
