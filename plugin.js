@@ -26,6 +26,7 @@
             socket.onmessage = function(event) {
                 let data = JSON.parse(event.data);
                 console.log('AI-Control: Message received', data);
+                  Lampa.Noty.show(data.method);
 
                 // МЕТОД ПОИСКА
                 if (data.method === 'search') {
