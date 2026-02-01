@@ -25,44 +25,53 @@
                 let data = JSON.parse(event.data);
 
                 // 1. ПОИСК (через Lampa.Activity.push)
-                if (data.method === 'search') {
-                    Lampa.Activity.push({
-                        url: '',
-                        title: 'Поиск: ' + data.query,
-                        component: 'search',
-                        search: data.query,
-                        source: 'tmdb'
-                    });
+               if (data.method === 'search') {
+    try {
+        // Создаем экземпляр поиска согласно твоей документации
+        // Это активирует UI поиска с предустановленным текстом
+        new Lampa.Search({
+            input: data.query,
+            onSearch: function(new_query) {
+                console.log('AI-Control: Запрос изменен вручную:', new_query);
+            },
+            onBack: function() {
+                console.log('AI-Control: Выход из поиска');
+            }
+        });
 
-                    // Даем время на загрузку данных
-                    setTimeout(function() {
-                        let activity = Lampa.Activity.active();
-                        if (activity.component === 'search' || activity.component === 'category') {
-                            let items = activity.items || [];
-                            let res = items.slice(0, 5).map(i => ({
-                                id: i.id,
-                                title: i.name || i.title,
-                                type: i.type || (i.number_of_seasons ? 'tv' : 'movie')
-                            }));
-                            socket.send(JSON.stringify({status: 'success', method: 'search', data: res}));
-                        }
-                    }, 3000);
-                }
+        // Сразу после инициализации Search, Lampa создаст Activity.
+        // Ждем отрисовки результатов, чтобы считать их и отправить ИИ.
+        setTimeout(function() {
+            let active = Lampa.Activity.active();
+            let items = active.items || [];
+            
+            let res = items.slice(0, 5).map(i => ({
+                id: i.id,
+                title: i.name || i.title,
+                type: i.type || (i.number_of_seasons ? 'tv' : 'movie')
+            }));
 
-                // 2. ОТКРЫТИЕ КАРТОЧКИ (через Lampa.Activity.push)
-                if (data.method === 'open') {
-                    Lampa.Activity.push({
-                        url: '',
-                        component: 'full',
-                        card: { 
-                            id: data.id, 
-                            method: data.type || 'movie' 
-                        },
-                        source: 'tmdb'
-                    });
-                    socket.send(JSON.stringify({status: 'success', method: 'open'}));
-                }
+            socket.send(JSON.stringify({
+                status: 'success',
+                method: 'search',
+                data: res
+            }));
+            
+            Lampa.Noty.show('ИИ получил результаты поиска');
+        }, 2500);
 
+    } catch (e) {
+        console.error('AI-Control: Search class error', e);
+        // Если класс Search не доступен глобально, пробуем фолбэк на Activity
+        Lampa.Activity.push({
+            url: '',
+            title: 'Поиск: ' + data.query,
+            component: 'search',
+            search: data.query,
+            source: 'tmdb'
+        });
+    }
+}
                 // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
                     // Используем селекторы из документации и стандартных плагинов
