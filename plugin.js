@@ -2,97 +2,98 @@
     'use strict';
 
     function startPlugin() {
-        // 1. Регистрируем манифест, чтобы Lampa видела плагин в списке
         Lampa.Manifest.plugins = {
             type: 'other',
-            version: '1.0.3',
-            name: 'AI Control Server',
-            description: 'Управление Лампой через WebSocket для ИИ',
+            version: '1.1.0',
+            name: 'AI Control',
+            description: 'WebSocket управление через официальное API',
             component: 'ai_control',
         };
 
         let socket;
-        let serverIp = '192.168.1.66'; // IP твоего Python-сервера
+        let serverIp = '192.168.1.66'; 
+        let port = '8000';
 
         function connect() {
-            console.log('AI-Control: Trying to connect to', serverIp);
-            socket = new WebSocket(`ws://${serverIp}:8000`);
+            socket = new WebSocket(`ws://${serverIp}:${port}`);
 
             socket.onopen = function() {
-                console.log('AI-Control: Connected to AI Server');
                 Lampa.Noty.show('AI Сервер подключен');
             };
 
             socket.onmessage = function(event) {
                 let data = JSON.parse(event.data);
-                console.log('AI-Control: Message received', data);
-                  Lampa.Noty.show(data.method);
 
-                // МЕТОД ПОИСКА
+                // 1. ПОИСК (через Lampa.Activity.push)
                 if (data.method === 'search') {
-                Lampa.Input.search(data.query);
-    
-                // Ждем отрисовки интерфейса
-                setTimeout(function() {
-                    try {
-                        let items = Lampa.Activity.active().items || [];
-                        let res = items.slice(0, 5).map(i => ({
-                            id: i.id, 
-                            title: i.name || i.title,
-                            type: i.type || 'movie'
-                        }));
-                        
-                        // ОБЯЗАТЕЛЬНО JSON.stringify
-                        socket.send(JSON.stringify({
-                            type: 'search_results', 
-                            data: res
-                        }));
-                        
-                        console.log('AI-Control: Results sent to server');
-                    } catch (e) {
-                        console.error('AI-Control: Search error', e);
-                        socket.send(JSON.stringify({type: 'error', message: e.message}));
-                    }
-                }, 2000);
-            }
-                            // МЕТОД ОТКРЫТИЯ КАРТОЧКИ
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Поиск: ' + data.query,
+                        component: 'search',
+                        search: data.query,
+                        source: 'tmdb'
+                    });
+
+                    // Даем время на загрузку данных
+                    setTimeout(function() {
+                        let activity = Lampa.Activity.active();
+                        if (activity.component === 'search' || activity.component === 'category') {
+                            let items = activity.items || [];
+                            let res = items.slice(0, 5).map(i => ({
+                                id: i.id,
+                                title: i.name || i.title,
+                                type: i.type || (i.number_of_seasons ? 'tv' : 'movie')
+                            }));
+                            socket.send(JSON.stringify({status: 'success', method: 'search', data: res}));
+                        }
+                    }, 3000);
+                }
+
+                // 2. ОТКРЫТИЕ КАРТОЧКИ (через Lampa.Activity.push)
                 if (data.method === 'open') {
                     Lampa.Activity.push({
                         url: '',
                         component: 'full',
-                        card: { id: data.id, method: data.type || 'movie' },
+                        card: { 
+                            id: data.id, 
+                            method: data.type || 'movie' 
+                        },
                         source: 'tmdb'
                     });
+                    socket.send(JSON.stringify({status: 'success', method: 'open'}));
                 }
 
-                // МЕТОД ЗАПУСКА ТОРРЕНТА
+                // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
-                    // Ищем кнопку торрентов в текущем UI
-                    let btn = $('.view--torrent, .button--torrent, .button--play');
+                    // Используем селекторы из документации и стандартных плагинов
+                    let btn = $('.view--torrent, .button--torrent, .full-start__button:contains("Торренты")');
                     if (btn.length) {
-                        btn.eq(0).click();
-                        Lampa.Noty.show('Запускаю торрент...');
+                        btn.eq(0).trigger('hover:enter'); // Эмулируем нажатие по API Lampa
+                        Lampa.Noty.show('Запуск торрентов...');
                     } else {
-                        Lampa.Noty.show('Кнопка запуска не найдена');
+                        Lampa.Noty.show('Кнопка торрентов не найдена');
                     }
                 }
-            };
 
-            socket.onerror = function(e) {
-                console.log('AI-Control: WebSocket Error', e);
+                // 4. СТАТУС
+                if (data.method === 'status') {
+                    socket.send(JSON.stringify({status: 'online', app: 'Lampa'}));
+                }
             };
 
             socket.onclose = function() {
-                console.log('AI-Control: Connection lost. Retry in 5s...');
                 setTimeout(connect, 5000);
+            };
+
+            socket.onerror = function(e) {
+                console.log('AI-Control: WS Error');
             };
         }
 
-        // Запускаем подключение
         connect();
     }
 
-    // Ожидание готовности приложения
+    // Инициализация по документации (Lampa.Listener)
     if (window.appready) {
         startPlugin();
     } else {
