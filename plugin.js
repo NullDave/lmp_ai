@@ -24,24 +24,35 @@
             socket.onmessage = function(event) {
                 let data = JSON.parse(event.data);
 
-                // 1. ПОИСК (через Lampa.Activity.push)
-               if (data.method === 'search') {
-    try {
-        // Создаем экземпляр поиска согласно твоей документации
-        // Это активирует UI поиска с предустановленным текстом
-        new Lampa.Search({
-            input: data.query,
-            onSearch: function(new_query) {
-                console.log('AI-Control: Запрос изменен вручную:', new_query);
-            },
-            onBack: function() {
-                console.log('AI-Control: Выход из поиска');
-            }
-        });
+                // 1. ПОИСК 
+             if (data.method === 'search') {
+    let source = Lampa.Storage.field('source'); // Узнаем, какой источник выбран (cub или tmdb)
+    let query_url = '';
+    
+    if (source === 'cub') {
+        // Формат для CUB: ?cat=movie&query=название
+        query_url = '?cat=movie&query=' + encodeURIComponent(data.query);
+    } else {
+        // Формат для TMDB: search/movie?query=название
+        query_url = 'search/movie?query=' + encodeURIComponent(data.query);
+    }
 
-        // Сразу после инициализации Search, Lampa создаст Activity.
-        // Ждем отрисовки результатов, чтобы считать их и отправить ИИ.
-        setTimeout(function() {
+    // Создаем объект активности точно по твоему шаблону из функции search()
+    let activity_data = {
+        url: query_url,
+        title: 'Поиск: ' + data.query,
+        component: 'category_full',
+        source: source === 'cub' ? 'cub' : 'tmdb',
+        card_type: true,
+        page: 1
+    };
+
+    // Выполняем переход (используем Lampa.Activity.push)
+    Lampa.Activity.push(activity_data);
+
+    // Ждем загрузки результатов и отправляем их ИИ
+    setTimeout(function() {
+        try {
             let active = Lampa.Activity.active();
             let items = active.items || [];
             
@@ -57,20 +68,11 @@
                 data: res
             }));
             
-            Lampa.Noty.show('ИИ получил результаты поиска');
-        }, 2500);
-
-    } catch (e) {
-        console.error('AI-Control: Search class error', e);
-        // Если класс Search не доступен глобально, пробуем фолбэк на Activity
-        Lampa.Activity.push({
-            url: '',
-            title: 'Поиск: ' + data.query,
-            component: 'search',
-            search: data.query,
-            source: 'tmdb'
-        });
-    }
+            Lampa.Noty.show('Найдено для ИИ: ' + res.length);
+        } catch (e) {
+            console.error('AI-Control Error:', e);
+        }
+    }, 2500);
 }
                 // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
