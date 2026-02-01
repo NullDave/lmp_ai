@@ -1,3 +1,10 @@
+/**
+ * {
+ * "name": "AI Control",
+ * "version": "1.0.0",
+ * "description": "Control Lampa via WebSocket AI"
+ * }
+ */
 (function () {
     let socket;
     let serverIp = '192.168.1.66'; 
