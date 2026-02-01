@@ -81,6 +81,21 @@
         }
     }, 1800); 
 }
+                
+                // 2. ОТКРЫТИЕ КАРТОЧКИ (через Lampa.Activity.push)
+                if (data.method === 'open') {
+                    Lampa.Activity.push({
+                        url: '',
+                        component: 'full',
+                        card: { 
+                            id: data.id, 
+                            method: data.type || 'movie' 
+                        },
+                        source: 'tmdb'
+                    });
+                    socket.send(JSON.stringify({status: 'success', method: 'open'}));
+                }
+
                 // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
                     // Используем селекторы из документации и стандартных плагинов
