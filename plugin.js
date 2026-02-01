@@ -79,7 +79,7 @@
             console.error('AI-Control: Data extract error', e);
             socket.send(JSON.stringify({status: 'error', message: 'Data structure mismatch'}));
         }
-    }, 3000); 
+    }, 1800); 
 }
                 // 3. ЗАПУСК ТОРРЕНТА (через поиск кнопки в DOM)
                 if (data.method === 'play') {
