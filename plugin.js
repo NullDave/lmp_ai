@@ -29,19 +29,32 @@
 
                 // МЕТОД ПОИСКА
                 if (data.method === 'search') {
-                    Lampa.Input.search(data.query);
-                    setTimeout(function() {
+                Lampa.Input.search(data.query);
+    
+                // Ждем отрисовки интерфейса
+                setTimeout(function() {
+                    try {
                         let items = Lampa.Activity.active().items || [];
                         let res = items.slice(0, 5).map(i => ({
                             id: i.id, 
                             title: i.name || i.title,
                             type: i.type || 'movie'
                         }));
-                        socket.send(JSON.stringify({type: 'search_results', data: res}));
-                    }, 2000);
-                }
-
-                // МЕТОД ОТКРЫТИЯ КАРТОЧКИ
+                        
+                        // ОБЯЗАТЕЛЬНО JSON.stringify
+                        socket.send(JSON.stringify({
+                            type: 'search_results', 
+                            data: res
+                        }));
+                        
+                        console.log('AI-Control: Results sent to server');
+                    } catch (e) {
+                        console.error('AI-Control: Search error', e);
+                        socket.send(JSON.stringify({type: 'error', message: e.message}));
+                    }
+                }, 2000);
+            }
+                            // МЕТОД ОТКРЫТИЯ КАРТОЧКИ
                 if (data.method === 'open') {
                     Lampa.Activity.push({
                         url: '',
