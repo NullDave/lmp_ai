@@ -12,7 +12,7 @@
                     type: 'other',
                     version: '1.2',
                     name: 'AI Control',
-                    description: ' WebSocket управление через API'',
+                    description: 'WebSocket управление через API',
                     component: 'ai_control',
                 };
                 this.connect();
@@ -84,10 +84,10 @@
                             };
                         });
 
-                        this.sendResponse('search', 'success', { data: results });
+                        AI_Control.sendResponse('search', 'success', { data: results });
                         console.log('AI-Control: Data sent immediately after render');
                     } catch (e) {
-                        this.sendResponse('search', 'error', { message: 'Extract error' });
+                        AI_Control.sendResponse('search', 'error', { message: 'Extract error' });
                     }
                 };
             },
