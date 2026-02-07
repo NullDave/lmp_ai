@@ -4,13 +4,15 @@
     function startPlugin() {
         const AI_Control = {
             socket: null,
-            serverIp: '192.168.1.66',
-            port: '50411',
+            serverIp: Lampa.Storage.get('ai_control_ip', '192.168.1.66'),
+            port: Lampa.Storage.get('ai_control_port', '50411'),
 
             init() {
+                this.setupSettings(); 
+                
                 Lampa.Manifest.plugins = {
                     type: 'other',
-                    version: '1.2',
+                    version: '1.3',
                     name: 'AI Control',
                     description: 'WebSocket управление через API',
                     component: 'ai_control',
@@ -18,8 +20,48 @@
                 this.connect();
             },
 
+            setupSettings() {
+                Lampa.Settings.listener.follow('open', (e) => {
+                    if (e.name == 'main') {
+                        var item = $('<div class="settings-folder selector" data-component="ai_control_settings">' +
+                            '<div class="settings-folder__icon"><svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg></div>' +
+                            '<div class="settings-folder__name">AI Control</div>' +
+                            '</div>');
+                        e.body.find('.settings-list').append(item);
+                    }
+                });
+
+                Lampa.Component.add('ai_control_settings', (object) => {
+                    var comp = new Lampa.SettingsBase(object);
+                    comp.create = function() {
+                        this.add({
+                            title: 'IP Сервера',
+                            name: 'ai_control_ip',
+                            type: 'input',
+                            placeholder: '192.168.1.66',
+                            value: Lampa.Storage.get('ai_control_ip', '192.168.1.66')
+                        });
+                        this.add({
+                            title: 'Порт WebSocket',
+                            name: 'ai_control_port',
+                            type: 'input',
+                            placeholder: '50411',
+                            value: Lampa.Storage.get('ai_control_port', '50411')
+                        });
+                    };
+                    comp.onChange = (params) => {
+                        Lampa.Storage.set(params.name, params.value);
+                        Lampa.Noty.show('Настройки сохранены. Перезапустите для применения.');
+                    };
+                    return comp;
+                });
+            },
+
             connect() {
-                this.socket = new WebSocket(`ws://${this.serverIp}:${this.port}`);
+                const ip = Lampa.Storage.get('ai_control_ip', this.serverIp);
+                const port = Lampa.Storage.get('ai_control_port', this.port);
+                
+                this.socket = new WebSocket(`ws://${ip}:${port}`);
                 this.socket.onopen = () => Lampa.Noty.show('AI Сервер подключен');
                 this.socket.onclose = () => setTimeout(() => this.connect(), 5000);
                 this.socket.onerror = () => console.error('AI-Control: WS Error');
@@ -27,7 +69,9 @@
             },
 
             sendResponse(method, status, data = {}) {
-                this.socket.send(JSON.stringify({ method, status, ...data }));
+                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify({ method, status, ...data }));
+                }
             },
 
             handleMessage(data) {
@@ -48,10 +92,8 @@
                 };
             },
 
-          actionSearch(query) {
+            actionSearch(query) {
                 const config = this.buildSearchUrl(query);
-                
-                // Создаем объект активности
                 const activityData = {
                     url: config.url,
                     title: 'Поиск: ' + query,
@@ -68,9 +110,7 @@
                 const originalOnFinished = component.onFinished;
                 
                 component.onFinished = () => {
-
                     if (originalOnFinished) originalOnFinished.apply(component);
-
                     try {
                         const items = component.items || [];
                         const results = items.slice(0, 7).map(item => {
@@ -83,9 +123,7 @@
                                 overview: d.overview ? d.overview.slice(0, 100) + '...' : ''
                             };
                         });
-
                         AI_Control.sendResponse('search', 'success', { data: results });
-                        console.log('AI-Control: Data sent immediately after render');
                     } catch (e) {
                         AI_Control.sendResponse('search', 'error', { message: 'Extract error' });
                     }
@@ -107,7 +145,6 @@
             actionPlay() {
                 const selectors = '.view--torrent, .button--torrent, .full-start__button:contains("Торренты")';
                 const btn = $(selectors).first();
-                
                 if (btn.length) {
                     btn.trigger('hover:enter');
                     Lampa.Noty.show('Запуск торрентов...');
