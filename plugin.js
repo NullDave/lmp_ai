@@ -20,49 +20,45 @@
             },
 
             setupSettings() {
-                const component_name = 'ai_control_settings';
+                const component_id = 'ai_control_settings';
 
-                // 1. Регистрируем категорию в настройках
+                if (!Lampa.Storage.get('ai_server_ip')) Lampa.Storage.set('ai_server_ip', '192.168.1.66');
+                if (!Lampa.Storage.get('ai_server_port')) Lampa.Storage.set('ai_server_port', '50411');
+
                 Lampa.SettingsApi.addComponent({
-                    component: component_name,
+                    component: component_id,
                     name: 'AI Control',
                     icon: '<svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org"><path d="M19 13v-2c0-1.1-.9-2-2-2h-1V7c0-2.21-1.79-4-4-4S8 4.79 8 7v2H7c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zM10 7c0-1.1.9-2 2-2s2 .9 2 2v2h-4V7zm10 11H4v-3h16v3z" fill="white"/></svg>'
                 });
-
-                // 2. Добавляем параметр IP
+                
                 Lampa.SettingsApi.addParam({
-                    component: component_name,
+                    component: component_id,
                     param: {
                         name: 'ai_server_ip',
                         type: 'input',
-                        default: '192.168.1.66',
                         placeholder: '192.168.1.66'
                     },
                     field: {
                         name: 'IP Адрес сервера',
-                        description: 'Укажите IP для WebSocket соединения'
+                        description: 'Укажите IP для WebSocket'
                     },
                     onChange: (value) => {
-                        Lampa.Noty.show('IP изменен: ' + value);
                         this.connect();
                     }
                 });
 
-                // 3. Добавляем параметр Порт
                 Lampa.SettingsApi.addParam({
-                    component: component_name,
+                    component: component_id,
                     param: {
                         name: 'ai_server_port',
                         type: 'input',
-                        default: '50411',
                         placeholder: '50411'
                     },
                     field: {
                         name: 'Порт сервера',
-                        description: 'Обычно 8000 или 50411'
+                        description: 'Обычно 50411 или 8000'
                     },
                     onChange: (value) => {
-                        Lampa.Noty.show('Порт изменен: ' + value);
                         this.connect();
                     }
                 });
