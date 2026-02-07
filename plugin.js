@@ -4,82 +4,67 @@
     function startPlugin() {
         const AI_Control = {
             socket: null,
-
+            
             init() {
                 this.setupSettings();
-                this.interceptComponent(); 
+                this.interceptComponent();
                 this.connect();
                 
                 Lampa.Manifest.plugins = {
                     type: 'other',
-                    version: '1.4.0',
+                    version: '1.4.5',
                     name: 'AI Control',
-                    description: 'WebSocket управление с перехватом событий',
+                    description: 'WebSocket управление через Settings API',
                     component: 'ai_control',
                 };
             },
 
             setupSettings() {
-                Lampa.Settings.add({
-                    title: 'AI Control',
-                    type: 'category',
-                    icon: '<i class="fas fa-robot"></i>',
-                    section: 'ai_control'
+                const component_name = 'ai_control_settings';
+
+                // 1. Регистрируем категорию в настройках
+                Lampa.SettingsApi.addComponent({
+                    component: component_name,
+                    name: 'AI Control',
+                    icon: '<svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org"><path d="M19 13v-2c0-1.1-.9-2-2-2h-1V7c0-2.21-1.79-4-4-4S8 4.79 8 7v2H7c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zM10 7c0-1.1.9-2 2-2s2 .9 2 2v2h-4V7zm10 11H4v-3h16v3z" fill="white"/></svg>'
                 });
-                Lampa.Settings.add({
-                    name: 'ai_server_ip',
-                    type: 'input',
-                    default: '192.168.1.66',
-                    title: 'IP Сервера',
-                    section: 'ai_control'
-                });
-                Lampa.Settings.add({
-                    name: 'ai_server_port',
-                    type: 'input',
-                    default: '50411',
-                    title: 'Порт Сервера',
-                    section: 'ai_control'
-                });
-            },
 
-            interceptComponent() {
-                const originalComponent = Lampa.Component.get('category_full');
-                const _this = this;
-
-                Lampa.Component.add('category_full', function(object) {
-                    const comp = originalComponent(object);
-
-                    if (object.is_ai_search) {
-                        const originalBuild = comp.build;
-                        
-                        comp.build = function() {
-                            const res = originalBuild.apply(comp, arguments);
-                            
-                            setTimeout(() => {
-                                try {
-                                    const items = comp.items || [];
-                                    const results = items.slice(0, 7).map(item => {
-                                        const d = item.data || {};
-                                        return {
-                                            id: d.id,
-                                            title: d.title || d.name,
-                                            release_date: d.release_date || d.first_air_date || '????',
-                                            type: d.original_title ? 'movie' : 'tv',
-                                            overview: d.overview ? d.overview.slice(0, 100) + '...' : ''
-                                        };
-                                    });
-
-                                    _this.sendResponse('search', 'success', { data: results });
-                                    console.log('AI-Control: Search results intercepted via build()');
-                                } catch (e) {
-                                    console.error('AI-Control: Intercept error', e);
-                                }
-                            }, 100); 
-                            
-                            return res;
-                        };
+                // 2. Добавляем параметр IP
+                Lampa.SettingsApi.addParam({
+                    component: component_name,
+                    param: {
+                        name: 'ai_server_ip',
+                        type: 'input',
+                        default: '192.168.1.66',
+                        placeholder: '192.168.1.66'
+                    },
+                    field: {
+                        name: 'IP Адрес сервера',
+                        description: 'Укажите IP для WebSocket соединения'
+                    },
+                    onChange: (value) => {
+                        Lampa.Noty.show('IP изменен: ' + value);
+                        this.connect();
                     }
-                    return comp;
+                });
+
+                // 3. Добавляем параметр Порт
+                Lampa.SettingsApi.addParam({
+                    component: component_name,
+                    param: {
+                        name: 'ai_server_port',
+                        type: 'input',
+                        default: '50411',
+                        placeholder: '50411'
+                    },
+                    field: {
+                        name: 'Порт сервера',
+                        description: 'Обычно 8000 или 50411'
+                    },
+                    onChange: (value) => {
+                        Lampa.Noty.show('Порт изменен: ' + value);
+                        this.connect();
+                    }
                 });
             },
 
@@ -87,12 +72,20 @@
                 const ip = Lampa.Storage.get('ai_server_ip', '192.168.1.66');
                 const port = Lampa.Storage.get('ai_server_port', '50411');
                 
-                if (this.socket) this.socket.close();
-                this.socket = new WebSocket(`ws://${ip}:${port}`);
+                if (this.socket) {
+                    this.socket.onclose = null;
+                    this.socket.close();
+                }
 
-                this.socket.onopen = () => Lampa.Noty.show('AI Сервер подключен');
-                this.socket.onmessage = (e) => this.handleMessage(JSON.parse(e.data));
-                this.socket.onclose = () => setTimeout(() => this.connect(), 5000);
+                try {
+                    this.socket = new WebSocket(`ws://${ip}:${port}`);
+                    this.socket.onopen = () => Lampa.Noty.show('AI подключен к ' + ip);
+                    this.socket.onmessage = (e) => this.handleMessage(JSON.parse(e.data));
+                    this.socket.onclose = () => setTimeout(() => this.connect(), 5000);
+                    this.socket.onerror = () => console.error('AI-Control: WS Error');
+                } catch(e) {
+                    console.error('AI-Control: WS Connect fail', e);
+                }
             },
 
             sendResponse(method, status, data = {}) {
@@ -110,18 +103,44 @@
                 }
             },
 
+            interceptComponent() {
+                const originalComponent = Lampa.Component.get('category_full');
+                const _this = this;
+
+                Lampa.Component.add('category_full', function(object) {
+                    const comp = originalComponent(object);
+                    if (object.is_ai_search) {
+                        const originalBuild = comp.build;
+                        comp.build = function() {
+                            const res = originalBuild.apply(comp, arguments);
+                            setTimeout(() => {
+                                try {
+                                    const items = comp.items || [];
+                                    const results = items.slice(0, 7).map(item => ({
+                                        id: item.data.id,
+                                        title: item.data.title || item.data.name,
+                                        release_date: item.data.release_date || '????',
+                                        type: item.data.original_title ? 'movie' : 'tv'
+                                    }));
+                                    _this.sendResponse('search', 'success', { data: results });
+                                } catch (e) { console.error(e); }
+                            }, 800);
+                            return res;
+                        };
+                    }
+                    return comp;
+                });
+            },
+
             actionSearch(query) {
                 const source = Lampa.Storage.field('source');
-                const url = source === 'cub' ? `?cat=movie&query=${encodeURIComponent(query)}` : `search/movie?query=${encodeURIComponent(query)}`;
-                
                 Lampa.Activity.push({
-                    url: url,
+                    url: source === 'cub' ? `?cat=movie&query=${encodeURIComponent(query)}` : `search/movie?query=${encodeURIComponent(query)}`,
                     title: 'Поиск: ' + query,
                     component: 'category_full',
                     source: source,
                     card_type: true,
-                    page: 1,
-                    is_ai_search: true 
+                    is_ai_search: true
                 });
             },
 
@@ -142,7 +161,7 @@
                     btn.trigger('hover:enter');
                     this.sendResponse('play', 'success');
                 } else {
-                    this.sendResponse('play', 'error', { message: 'Button not found' });
+                    this.sendResponse('play', 'error');
                 }
             }
         };
