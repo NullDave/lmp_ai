@@ -57,7 +57,7 @@
                         name: port_key,  
                         type: 'input',  
                         values: '',                   
-                        default: '50411',              /
+                        default: '50411',              
                         placeholder: '50411'  
                     },  
                     field: {  
