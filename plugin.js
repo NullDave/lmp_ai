@@ -20,57 +20,54 @@
             },
 
             setupSettings() {
-                const component_id = 'ai_control_settings';
-                const ip_key = 'ai_server_ip';
-                const port_key = 'ai_server_port';
-                if (!Lampa.Storage.get(ip_key)) Lampa.Storage.set(ip_key, '192.168.1.66');
-                if (!Lampa.Storage.get(port_key)) Lampa.Storage.set(port_key, '50411');
-
-
-                window.values = window.values || {};
-                window.values[ip_key] = 'string'; 
-                window.values[port_key] = 'string';
-                window.defaults = window.defaults || {};
-                window.defaults[ip_key] = '192.168.1.66';
-                window.defaults[port_key] = '50411';
-
-                Lampa.SettingsApi.addComponent({
-                    component: component_id,
-                    name: 'AI Control',
-                    icon: '<svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org"><path d="M19 13v-2c0-1.1-.9-2-2-2h-1V7c0-2.21-1.79-4-4-4S8 4.79 8 7v2H7c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zM10 7c0-1.1.9-2 2-2s2 .9 2 2v2h-4V7zm10 11H4v-3h16v3z" fill="white"/></svg>'
-                });
-
-                Lampa.SettingsApi.addParam({
-                    component: component_id,
-                    param: {
-                        name: ip_key,
-                        type: 'input',
-                        placeholder: '192.168.1.66'
-                    },
-                    field: {
-                        name: 'IP Адрес сервера',
-                        description: 'Укажите IP для WebSocket'
-                    },
-                    onChange: (value) => {
-                        this.connect();
-                    }
-                });
-
-                Lampa.SettingsApi.addParam({
-                    component: component_id,
-                    param: {
-                        name: port_key,
-                        type: 'input',
-                        placeholder: '50411'
-                    },
-                    field: {
-                        name: 'Порт сервера',
-                        description: 'Обычно 50411 или 8000'
-                    },
-                    onChange: (value) => {
-                        this.connect();
-                    }
-                });
+               const component_id = 'ai_control_settings';  
+                const ip_key = 'ai_server_ip';  
+                const port_key = 'ai_server_port';  
+                  
+                if (!Lampa.Storage.get(ip_key)) Lampa.Storage.set(ip_key, '192.168.1.66');  
+                if (!Lampa.Storage.get(port_key)) Lampa.Storage.set(port_key, '50411');  
+              
+                Lampa.SettingsApi.addComponent({  
+                    component: component_id,  
+                    name: 'AI Control',  
+                    icon: '<svg height="36" viewBox="0 0 24 24" width="36" xmlns="http://www.w3.org"><path d="M19 13v-2c0-1.1-.9-2-2-2h-1V7c0-2.21-1.79-4-4-4S8 4.79 8 7v2H7c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zM10 7c0-1.1.9-2 2-2s2 .9 2 2v2h-4V7zm10 11H4v-3h16v3z" fill="white"/></svg>'  
+                });  
+              
+                Lampa.SettingsApi.addParam({  
+                    component: component_id,  
+                    param: {  
+                        name: ip_key,  
+                        type: 'input',  
+                        values: '',                    
+                        default: '192.168.1.66',       
+                        placeholder: '192.168.1.66'  
+                    },  
+                    field: {  
+                        name: 'IP Адрес сервера',  
+                        description: 'Укажите IP для WebSocket'  
+                    },  
+                    onChange: (value) => {  
+                        this.connect();  
+                    }  
+                });  
+              
+                Lampa.SettingsApi.addParam({  
+                    component: component_id,  
+                    param: {  
+                        name: port_key,  
+                        type: 'input',  
+                        values: '',                   
+                        default: '50411',              /
+                        placeholder: '50411'  
+                    },  
+                    field: {  
+                        name: 'Порт сервера',  
+                        description: 'Обычно 50411 или 8000'  
+                    },  
+                    onChange: (value) => {  
+                        this.connect();  
+                    }  
+                });  
             },
 
             connect() {
