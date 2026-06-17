@@ -157,80 +157,89 @@
                 this.sendResponse('open', 'success');
             },
 
-   actionPlay() {
+         actionPlay() {
 
-    const _this = this;
+                const _this = this;
 
-    const btn = $('.view--torrent, .button--torrent, .full-start__button')
-        .first();
+                const btn = $('.view--torrent, .button--torrent, .full-start__button')
+                    .first();
 
-    if (!btn.length) {
-        _this.sendResponse('play', 'error', {
-            message: 'Кнопка Торренты не найдена'
-        });
-        return;
-    }
+                if (!btn.length) {
+                    _this.sendResponse('play', 'error', {
+                        message: 'Кнопка Торренты не найдена'
+                    });
+                    return;
+                }
 
-    btn.trigger('hover:enter');
+                btn.trigger('hover:enter');
 
-    const waitTorrentList = setInterval(() => {
+                const waitTorrentList = setInterval(() => {
 
-        const torrents = $('.torrent-item');
+                    const torrents = $('.torrent-item');
 
-        if (!torrents.length) return;
+                    if (!torrents.length) return;
 
-        clearInterval(waitTorrentList);
+                    clearInterval(waitTorrentList);
 
-        let bestTorrent = null;
-        let bestSeeds = -1;
+                    let bestTorrent = null;
+                    let bestSeeds = -1;
 
-        torrents.each(function () {
+                    torrents.each(function () {
 
-            const item = $(this);
+                        const item = $(this);
 
-            const seedsText = item
-                .find('.torrent-item__seeds span')
-                .text()
-                .trim();
+                        const seedsText = item
+                            .find('.torrent-item__seeds span')
+                            .text()
+                            .trim();
 
-            const seeds = parseInt(seedsText) || 0;
+                        const seeds = parseInt(seedsText, 10) || 0;
 
-            if (seeds > bestSeeds) {
-                bestSeeds = seeds;
-                bestTorrent = item;
+                        if (seeds > bestSeeds) {
+                            bestSeeds = seeds;
+                            bestTorrent = item;
+                        }
+                    });
+
+                    if (!bestTorrent) {
+
+                        _this.sendResponse('play', 'error', {
+                            message: 'Торренты не найдены'
+                        });
+
+                        return;
+                    }
+
+                    console.log(
+                        'AI-Control: запуск торрента с максимальными сидами:',
+                        bestSeeds
+                    );
+
+                    bestTorrent.trigger('hover:enter');
+
+                    _this.sendResponse('play', 'success', {
+                        seeds: bestSeeds
+                    });
+
+                }, 500);
+
+                setTimeout(() => {
+                    clearInterval(waitTorrentList);
+                }, 15000);
             }
-        });
 
-        if (!bestTorrent) {
-
-            _this.sendResponse('play', 'error', {
-                message: 'Торренты не найдены'
-            });
-
-            return;
-        }
-
-        console.log(
-            'AI-Control: запуск торрента с максимальными сидами:',
-            bestSeeds
-        );
-
-        bestTorrent.trigger('hover:enter');
-
-        _this.sendResponse('play', 'success', {
-            seeds: bestSeeds
-        });
-
-    }, 500);
-
-    setTimeout(() => {
-        clearInterval(waitTorrentList);
-    }, 15000);
-}
+        }; 
+        
 
         AI_Control.init();
     }
 
-    if (window.appready) startPlugin();
-    else Lampa.Listener.follow('app', (e) => { if (e.type == 'ready') startPlugin(); });
+    if (window.appready) {
+        startPlugin();
+    } else {
+        Lampa.Listener.follow('app', (e) => {
+            if (e.type === 'ready') startPlugin();
+        });
+    }
+
 })();
