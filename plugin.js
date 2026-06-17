@@ -12,7 +12,7 @@
                 
                 Lampa.Manifest.plugins = {
                     type: 'other',
-                    version: '1.4.5',
+                    version: '1.5.0',
                     name: 'AI Control',
                     description: 'WebSocket управление через Settings API',
                     component: 'ai_control',
@@ -157,16 +157,76 @@
                 this.sendResponse('open', 'success');
             },
 
-            actionPlay() {
-                const btn = $('.view--torrent, .button--torrent, .full-start__button:contains("Торренты")').first();
-                if (btn.length) {
-                    btn.trigger('hover:enter');
-                    this.sendResponse('play', 'success');
-                } else {
-                    this.sendResponse('play', 'error');
-                }
+   actionPlay() {
+
+    const _this = this;
+
+    const btn = $('.view--torrent, .button--torrent, .full-start__button')
+        .first();
+
+    if (!btn.length) {
+        _this.sendResponse('play', 'error', {
+            message: 'Кнопка Торренты не найдена'
+        });
+        return;
+    }
+
+    btn.trigger('hover:enter');
+
+    const waitTorrentList = setInterval(() => {
+
+        const torrents = $('.torrent-item');
+
+        if (!torrents.length) return;
+
+        clearInterval(waitTorrentList);
+
+        let bestTorrent = null;
+        let bestSeeds = -1;
+
+        torrents.each(function () {
+
+            const item = $(this);
+
+            const seedsText = item
+                .find('.torrent-item__seeds span')
+                .text()
+                .trim();
+
+            const seeds = parseInt(seedsText) || 0;
+
+            if (seeds > bestSeeds) {
+                bestSeeds = seeds;
+                bestTorrent = item;
             }
-        };
+        });
+
+        if (!bestTorrent) {
+
+            _this.sendResponse('play', 'error', {
+                message: 'Торренты не найдены'
+            });
+
+            return;
+        }
+
+        console.log(
+            'AI-Control: запуск торрента с максимальными сидами:',
+            bestSeeds
+        );
+
+        bestTorrent.trigger('hover:enter');
+
+        _this.sendResponse('play', 'success', {
+            seeds: bestSeeds
+        });
+
+    }, 500);
+
+    setTimeout(() => {
+        clearInterval(waitTorrentList);
+    }, 15000);
+}
 
         AI_Control.init();
     }
