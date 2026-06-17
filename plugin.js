@@ -160,10 +160,8 @@
          actionPlay() {
 
                 const _this = this;
-
-                const btn = $('.view--torrent, .button--torrent, .full-start__button')
-                    .first();
-
+                const btn = $('.view--torrent, .button--torrent, .full-start__button:contains("Торренты")').first();
+                
                 if (!btn.length) {
                     _this.sendResponse('play', 'error', {
                         message: 'Кнопка Торренты не найдена'
